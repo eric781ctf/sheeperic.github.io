@@ -1,3 +1,4 @@
+https://eric781ctf.github.io/2025/07/22/promtail-installation/
 https://eric781ctf.github.io/about/index.html
 https://eric781ctf.github.io/2025/05/27/opencv-resize-compare/
 https://eric781ctf.github.io/2025/05/05/mermaid-learning/
@@ -22,12 +23,16 @@ https://eric781ctf.github.io/tags/GitHub-Pages/
 https://eric781ctf.github.io/tags/Sitemap/
 https://eric781ctf.github.io/tags/%E7%89%A9%E4%BB%B6%E5%B0%8E%E5%90%91-OOP/
 https://eric781ctf.github.io/tags/Java/
+https://eric781ctf.github.io/tags/Unit-test/
 https://eric781ctf.github.io/tags/LLM/
 https://eric781ctf.github.io/tags/LangChain/
 https://eric781ctf.github.io/tags/%E6%B5%81%E7%A8%8B%E5%9C%96/
 https://eric781ctf.github.io/tags/%E5%B0%88%E6%A1%88%E8%A6%8F%E5%8A%83/
 https://eric781ctf.github.io/tags/GitHub/
-https://eric781ctf.github.io/tags/Unit-test/
+https://eric781ctf.github.io/tags/Linux/
+https://eric781ctf.github.io/tags/Promtail/
+https://eric781ctf.github.io/tags/Grafana/
+https://eric781ctf.github.io/tags/Loki/
 https://eric781ctf.github.io/categories/%E5%AF%A6%E4%BD%9C/
 https://eric781ctf.github.io/categories/%E7%AD%86%E8%A8%98/
 https://eric781ctf.github.io/categories/%E5%AD%B8%E7%BF%92%E7%B4%80%E9%8C%84/

@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: "base",
+      themeVariables: {
+        primaryColor: "#1f77b4",
+        edgeLabelBackground: "#fcfcf7",
+        lineColor: "#eaed37",
+        textColor: "#cc14f5",
+        background: "#fcfcf7"
+      }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((el) => {
+      const code = el.textContent;
+      el.removeAttribute('data-processed'); // 重設處理狀態
+      el.innerHTML = code;                  // 還原原始文字內容
+      mermaid.init(undefined, el);          // 手動初始化渲染
+    });
+  });
+</script>
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"eric781ctf.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="最近為了將 Server 上的文本資料和 Grafana 結合在一起，所以架設了 Loki 文字資料的蒐集，這其中的架構會需要用到 promtail，所以今天就單獨把 promtail 的安裝拎出來說吧！">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Promtail 安裝教學">
+<meta property="og:url" content="https://eric781ctf.github.io/2025/07/22/promtail-installation/index.html">
+<meta property="og:site_name" content="Eric&#39;s learning blog">
+<meta property="og:description" content="最近為了將 Server 上的文本資料和 Grafana 結合在一起，所以架設了 Loki 文字資料的蒐集，這其中的架構會需要用到 promtail，所以今天就單獨把 promtail 的安裝拎出來說吧！">
+<meta property="og:locale" content="zh_TW">
+<meta property="article:published_time" content="2025-07-22T15:36:38.000Z">
+<meta property="article:modified_time" content="2025-07-22T15:41:37.020Z">
+<meta property="article:author" content="Eric">
+<meta property="article:tag" content="Linux">
+<meta property="article:tag" content="Promtail">
+<meta property="article:tag" content="Grafana">
+<meta property="article:tag" content="Loki">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://eric781ctf.github.io/2025/07/22/promtail-installation/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-TW'
+  };
+</script>
+
+  <title>Promtail 安裝教學 | Eric's learning blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<style>.darkmode--activated{--body-bg-color:#282828;--content-bg-color:#333;--card-bg-color:#555;--text-color:#ccc;--blockquote-color:#bbb;--link-color:#ccc;--link-hover-color:#eee;--brand-color:#ddd;--brand-hover-color:#ddd;--table-row-odd-bg-color:#282828;--table-row-hover-bg-color:#363636;--menu-item-bg-color:#555;--btn-default-bg:#222;--btn-default-color:#ccc;--btn-default-border-color:#555;--btn-default-hover-bg:#666;--btn-default-hover-color:#ccc;--btn-default-hover-border-color:#666;--highlight-background:#282b2e;--highlight-foreground:#a9b7c6;--highlight-gutter-background:#34393d;--highlight-gutter-foreground:#9ca9b6}.darkmode--activated img{opacity:.75}.darkmode--activated img:hover{opacity:.9}.darkmode--activated code{color:#69dbdc;background:0 0}button.darkmode-toggle{z-index:9999}.darkmode-ignore,img{display:flex!important}.beian img{display:inline-block!important}</style></head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切換導航欄">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Eric's learning blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">一隻亂跑的羊</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首頁</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>歸檔<span class="badge">11</span></a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>關於</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>標籤<span class="badge">19</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分類<span class="badge">3</span></a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>網站地圖</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-TW">
+    <link itemprop="mainEntityOfPage" href="https://eric781ctf.github.io/2025/07/22/promtail-installation/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/account.jpg">
+      <meta itemprop="name" content="Eric">
+      <meta itemprop="description" content="一個紀錄亂點技能樹的地方">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Eric's learning blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Promtail 安裝教學
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">發表於</span>
+              
+
+              <time title="建立時間：2025-07-22 23:36:38 / 修改時間：23:41:37" itemprop="dateCreated datePublished" datetime="2025-07-22T23:36:38+08:00">2025-07-22</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分類於</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AF%A6%E4%BD%9C/" itemprop="url" rel="index"><span itemprop="name">實作</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>最近為了將 Server 上的文本資料和 Grafana 結合在一起，所以架設了 Loki 文字資料的蒐集，這其中的架構會需要用到 promtail，所以今天就單獨把 promtail 的安裝拎出來說吧！</p>
+<span id="more"></span>
+
+<h2 id="下載安裝包"><a href="#下載安裝包" class="headerlink" title="下載安裝包"></a>下載安裝包</h2><p>首先用以下指令查看你CPU架構</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">uname</span> -m</span><br></pre></td></tr></table></figure>
+
+<p>根據你的CPU架構從 <a target="_blank" rel="noopener" href="https://github.com/grafana/loki/releases">github</a>下載需要的版本</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget https://github.com/grafana/loki/releases/download/v3.4.5/promtail-linux-amd64.zip</span><br></pre></td></tr></table></figure>
+
+<p>解壓縮壓縮檔</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">unzip promtail-linux-amd64.zip</span><br></pre></td></tr></table></figure>
+
+<h2 id="開始安裝"><a href="#開始安裝" class="headerlink" title="開始安裝"></a>開始安裝</h2><h3 id="移動到固定路徑"><a href="#移動到固定路徑" class="headerlink" title="移動到固定路徑"></a>移動到固定路徑</h3><p>執行檔放在 bin</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> <span class="built_in">mv</span> ./promtail-linux-amd64 /usr/local/bin/promtail</span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chmod</span> +x /usr/local/bin/promtail</span><br></pre></td></tr></table></figure>
+
+<h3 id="建立設定檔"><a href="#建立設定檔" class="headerlink" title="建立設定檔"></a>建立設定檔</h3><p>準備一份 <code>promtail-config.yaml</code> 放在 etc</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> <span class="built_in">mkdir</span> -p /etc/promtail</span><br><span class="line"><span class="built_in">sudo</span> nano /etc/promtail/promtail-config.yaml</span><br></pre></td></tr></table></figure>
+
+<p>yaml裡面要填的是 Loki 的相關設定</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">server:</span></span><br><span class="line">  <span class="attr">http_listen_port:</span> <span class="number">9080</span></span><br><span class="line">  <span class="attr">grpc_listen_port:</span> <span class="number">0</span></span><br><span class="line"></span><br><span class="line"><span class="attr">positions:</span></span><br><span class="line">  <span class="attr">filename:</span> <span class="string">/var/lib/promtail/positions.yaml</span></span><br><span class="line"></span><br><span class="line"><span class="attr">clients:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">url:</span> <span class="string">http://&lt;你的Loki_IP&gt;:3100/loki/api/v1/push</span></span><br><span class="line"></span><br><span class="line"><span class="attr">scrape_configs:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">job_name:</span> <span class="string">varlogs</span></span><br><span class="line">    <span class="attr">static_configs:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">targets:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="string">localhost</span></span><br><span class="line">        <span class="attr">labels:</span></span><br><span class="line">          <span class="attr">job:</span> <span class="string">varlogs</span></span><br><span class="line">          <span class="attr">__path__:</span> <span class="string">/var/log/*.log</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>建立位置檔案的資料夾：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> <span class="built_in">mkdir</span> -p /var/lib/promtail</span><br></pre></td></tr></table></figure>
+
+<h3 id="建立-systemd-服務檔"><a href="#建立-systemd-服務檔" class="headerlink" title="建立 systemd 服務檔"></a>建立 systemd 服務檔</h3><p>建立 &#x2F;etc&#x2F;systemd&#x2F;system&#x2F;promtail.service：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> nano /etc/systemd/system/promtail.service</span><br></pre></td></tr></table></figure>
+
+<p>貼入以下內容：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">[Unit]</span><br><span class="line">Description=Promtail service</span><br><span class="line">After=network.target</span><br><span class="line"></span><br><span class="line">[Service]</span><br><span class="line">Type=simple</span><br><span class="line">ExecStart=/usr/local/bin/promtail -config.file=/etc/promtail/promtail-config.yaml</span><br><span class="line">Restart=always</span><br><span class="line">RestartSec=5</span><br><span class="line">User=root</span><br><span class="line"></span><br><span class="line">[Install]</span><br><span class="line">WantedBy=multi-user.target</span><br></pre></td></tr></table></figure>
+
+<h3 id="重新載入-systemd-並啟用"><a href="#重新載入-systemd-並啟用" class="headerlink" title="重新載入 systemd 並啟用"></a>重新載入 systemd 並啟用</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> systemctl daemon-reload</span><br><span class="line"><span class="built_in">sudo</span> systemctl <span class="built_in">enable</span> promtail</span><br><span class="line"><span class="built_in">sudo</span> systemctl start promtail</span><br></pre></td></tr></table></figure>
+
+<h3 id="查看結果和-logs"><a href="#查看結果和-logs" class="headerlink" title="查看結果和 logs"></a>查看結果和 logs</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> systemctl status promtail</span><br></pre></td></tr></table></figure>
+
+<p>應該要看到 Active(running)</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">journalctl -u promtail -f</span><br></pre></td></tr></table></figure>
+
+<p>會顯示出執行的 logs</p>
+<h3 id="修改後如何重啟服務"><a href="#修改後如何重啟服務" class="headerlink" title="修改後如何重啟服務"></a>修改後如何重啟服務</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> systemctl daemon-reload</span><br><span class="line"><span class="built_in">sudo</span> systemctl restart promtail</span><br><span class="line"><span class="built_in">sudo</span> systemctl status promtail</span><br></pre></td></tr></table></figure>
+
+<h3 id="臨時關閉服務（停止服務，不影響開機自動啟動）"><a href="#臨時關閉服務（停止服務，不影響開機自動啟動）" class="headerlink" title="臨時關閉服務（停止服務，不影響開機自動啟動）"></a>臨時關閉服務（停止服務，不影響開機自動啟動）</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> systemctl stop promtail</span><br></pre></td></tr></table></figure>
+
+<p>👉 這樣會馬上把 promtail 停掉，但不影響開機時還會啟動。</p>
+<h3 id="關閉服務（開機也不要自動啟動）"><a href="#關閉服務（開機也不要自動啟動）" class="headerlink" title="關閉服務（開機也不要自動啟動）"></a>關閉服務（開機也不要自動啟動）</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> systemctl <span class="built_in">disable</span> promtail</span><br></pre></td></tr></table></figure>
+
+<p>如果要再次啟動</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> systemctl start promtail</span><br></pre></td></tr></table></figure>
+
+<p>如果要再次啟動且開機自動啟動</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> systemctl <span class="built_in">enable</span> promtail</span><br><span class="line"><span class="built_in">sudo</span> systemctl start promtail</span><br></pre></td></tr></table></figure>
+
+<h3 id="強制關閉（不要優雅關閉graceful-shutdown）"><a href="#強制關閉（不要優雅關閉graceful-shutdown）" class="headerlink" title="強制關閉（不要優雅關閉graceful shutdown）"></a>強制關閉（不要優雅關閉graceful shutdown）</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> systemctl <span class="built_in">kill</span> promtail</span><br><span class="line">or</span><br><span class="line"><span class="built_in">sudo</span> systemctl stop promtail --force --now</span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+              <a href="/tags/Promtail/" rel="tag"># Promtail</a>
+              <a href="/tags/Grafana/" rel="tag"># Grafana</a>
+              <a href="/tags/Loki/" rel="tag"># Loki</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/05/27/opencv-resize-compare/" rel="prev" title="以圖表比較 OpenCV 中不同的 resize 方法">
+      <i class="fa fa-chevron-left"></i> 以圖表比較 OpenCV 中不同的 resize 方法
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目錄
+        </li>
+        <li class="sidebar-nav-overview">
+          網站概要
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%8B%E8%BC%89%E5%AE%89%E8%A3%9D%E5%8C%85"><span class="nav-number">1.</span> <span class="nav-text">下載安裝包</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%96%8B%E5%A7%8B%E5%AE%89%E8%A3%9D"><span class="nav-number">2.</span> <span class="nav-text">開始安裝</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A7%BB%E5%8B%95%E5%88%B0%E5%9B%BA%E5%AE%9A%E8%B7%AF%E5%BE%91"><span class="nav-number">2.1.</span> <span class="nav-text">移動到固定路徑</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BB%BA%E7%AB%8B%E8%A8%AD%E5%AE%9A%E6%AA%94"><span class="nav-number">2.2.</span> <span class="nav-text">建立設定檔</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BB%BA%E7%AB%8B-systemd-%E6%9C%8D%E5%8B%99%E6%AA%94"><span class="nav-number">2.3.</span> <span class="nav-text">建立 systemd 服務檔</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%87%8D%E6%96%B0%E8%BC%89%E5%85%A5-systemd-%E4%B8%A6%E5%95%9F%E7%94%A8"><span class="nav-number">2.4.</span> <span class="nav-text">重新載入 systemd 並啟用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E7%B5%90%E6%9E%9C%E5%92%8C-logs"><span class="nav-number">2.5.</span> <span class="nav-text">查看結果和 logs</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9%E5%BE%8C%E5%A6%82%E4%BD%95%E9%87%8D%E5%95%9F%E6%9C%8D%E5%8B%99"><span class="nav-number">2.6.</span> <span class="nav-text">修改後如何重啟服務</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%87%A8%E6%99%82%E9%97%9C%E9%96%89%E6%9C%8D%E5%8B%99%EF%BC%88%E5%81%9C%E6%AD%A2%E6%9C%8D%E5%8B%99%EF%BC%8C%E4%B8%8D%E5%BD%B1%E9%9F%BF%E9%96%8B%E6%A9%9F%E8%87%AA%E5%8B%95%E5%95%9F%E5%8B%95%EF%BC%89"><span class="nav-number">2.7.</span> <span class="nav-text">臨時關閉服務（停止服務，不影響開機自動啟動）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%97%9C%E9%96%89%E6%9C%8D%E5%8B%99%EF%BC%88%E9%96%8B%E6%A9%9F%E4%B9%9F%E4%B8%8D%E8%A6%81%E8%87%AA%E5%8B%95%E5%95%9F%E5%8B%95%EF%BC%89"><span class="nav-number">2.8.</span> <span class="nav-text">關閉服務（開機也不要自動啟動）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BC%B7%E5%88%B6%E9%97%9C%E9%96%89%EF%BC%88%E4%B8%8D%E8%A6%81%E5%84%AA%E9%9B%85%E9%97%9C%E9%96%89graceful-shutdown%EF%BC%89"><span class="nav-number">2.9.</span> <span class="nav-text">強制關閉（不要優雅關閉graceful shutdown）</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Eric"
+      src="/images/account.jpg">
+  <p class="site-author-name" itemprop="name">Eric</p>
+  <div class="site-description" itemprop="description">一個紀錄亂點技能樹的地方</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">文章</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分類</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">19</span>
+        <span class="site-state-item-name">標籤</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/eric781ctf" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;eric781ctf" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:eric773dfl@gmail.com" title="E-Mail → mailto:eric773dfl@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.instagram.com/sheep_eric_0508" title="Instagram → https:&#x2F;&#x2F;www.instagram.com&#x2F;sheep_eric_0508" rel="noopener" target="_blank"><i class="fab fa-instagram fa-fw"></i>Instagram</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2024 – 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-ghost"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Eric</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 強力驅動
+  </div>
+
+
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'forest',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+<script src="https://cdn.jsdelivr.net/npm/darkmode-js@1.5.7/lib/darkmode-js.min.js"></script>
+
+<script>
+var options = {
+  bottom: '64px',
+  right: 'unset',
+  left: '32px',
+  time: '0.5s',
+  mixColor: '＃7B68EE',
+  backgroundColor: 'transparent',
+  buttonColorDark: '#100f2c',
+  buttonColorLight: '#fff',
+  saveInCookies: true,
+  label: '🌓',
+  autoMatchOsTheme: true
+}
+const darkmode = new Darkmode(options);
+window.darkmode = darkmode;
+darkmode.showWidget();
+</script>
+
+</body>
+</html>
